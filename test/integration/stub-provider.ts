@@ -7,7 +7,8 @@ import {
   type TranscriptContext,
 } from "@earendil-works/pi-ai";
 
-const LIMIT_TEXT = "Rate limit reached. Please try again in 5s.";
+const LIMIT_TEXT =
+  process.env.STUB_LIMIT_TEXT ?? "Rate limit reached. Please try again in 5s.";
 const RESUME_MARKER = "resuming after limit reset";
 
 const core = createFauxCore({ provider: "stub", models: [{ id: "stub-limit", name: "Stub Limit" }] });
