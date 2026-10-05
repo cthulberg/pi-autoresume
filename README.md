@@ -12,7 +12,7 @@ When a provider stops a turn because of a usage or rate limit, pi-autoresume wai
 
 ```bash
 # from npm
-pi install npm:pi-autoresume
+pi install npm:@cthulberg/pi-autoresume
 
 # from this git repository
 pi install git:github.com/cthulberg/pi-autoresume
