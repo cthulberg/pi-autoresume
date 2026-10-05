@@ -101,7 +101,7 @@ The four messages are sent as custom messages in the transcript; `resuming` is t
 
 - **In-session only.** The pending wait lives in memory. Quitting pi or reloading extensions cancels it; nothing is persisted.
 - **No escape key.** Control is the `/autoresume` command: `cancel` disarms the wait, `off` disables autoresume for the session. Sending a message while waiting also cancels the pending wait; the next limit stop arms again.
-- **Provider coverage.** Verified on `openai-codex`; any provider that reports a reset through `retry-after`/`retry-after-ms` headers or recognizable reset text works through the same provider-agnostic paths. Providers that communicate no reset time fall back to backoff.
+- **Provider coverage.** The `openai-codex` subscription-limit message (`Try again in ~N min`) is covered by the test suite, as are the `retry-after`/`retry-after-ms` header and generic reset-text paths; any provider that reports a reset through those paths works through the same provider-agnostic logic. Providers that communicate no reset time fall back to backoff.
 - **TUI chrome.** The footer countdown and notifications are shown in the interactive TUI; classification and continuation also work in non-interactive modes.
 
 ## Development
