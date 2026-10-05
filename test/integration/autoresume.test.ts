@@ -4,6 +4,29 @@ import { RpcSession } from "../support/rpc.ts";
 const AUTORESUME = new URL("../../extensions/autoresume.ts", import.meta.url).pathname;
 const STUB = new URL("./stub-provider.ts", import.meta.url).pathname;
 
+test("command surface reports and toggles state", async () => {
+  const rpc = await RpcSession.start({ extensionPaths: [AUTORESUME, STUB] });
+  const notify = (substring: string) =>
+    rpc.records.find(
+      (r) => r.type === "extension_ui_request" && r.method === "notify" &&
+        String(r.message).includes(substring),
+    );
+  try {
+    expect(await rpc.prompt("/autoresume status")).toBe("handled");
+    expect(notify("autoresume · enabled")).toBeDefined();
+    expect(await rpc.prompt("/autoresume off")).toBe("handled");
+    expect(notify("disabled for this session")).toBeDefined();
+    expect(await rpc.prompt("/autoresume on")).toBe("handled");
+    expect(notify("enabled for this session")).toBeDefined();
+    expect(await rpc.prompt("/autoresume cancel")).toBe("handled");
+    expect(notify("nothing pending")).toBeDefined();
+    expect(await rpc.prompt("/autoresume bogus")).toBe("handled");
+    expect(notify("Usage: /autoresume")).toBeDefined();
+  } finally {
+    await rpc.stop();
+  }
+}, 30_000);
+
 test("waits for the limit reset and resumes the session", async () => {
   const rpc = await RpcSession.start({ extensionPaths: [AUTORESUME, STUB] });
   try {

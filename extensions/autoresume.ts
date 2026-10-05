@@ -315,6 +315,63 @@ export default function autoresume(pi: ExtensionAPI): void {
     cancelWait();
   });
 
+  /** R9: one-line report of the current wait, or of why autoresume is off. */
+  function statusLine(): string {
+    if (sessionOff) return "autoresume · disabled (session) · idle";
+    if (!isEnabled()) return "autoresume · disabled (settings) · idle";
+    if (wait === undefined) return "autoresume · enabled · idle";
+
+    const remaining = Math.max(0, wait.targetAt - Date.now());
+    if (wait.source === "backoff") {
+      return `autoresume · enabled · waiting · backoff ${wait.attempt}/${MAX_BACKOFF_ATTEMPTS} · retry in ${formatDuration(remaining)}`;
+    }
+    return `autoresume · enabled · waiting · resume ${formatClock(wait.targetAt)} (${wait.source}) · in ${formatDuration(remaining)}`;
+  }
+
+  // R9: `/autoresume` reports state and toggles the session-level switch.
+  pi.registerCommand("autoresume", {
+    description: "Control automatic resume after provider limits",
+    getArgumentCompletions: (prefix) => {
+      const subcommands = ["status", "cancel", "off", "on"];
+      const trimmed = prefix.trim().toLowerCase();
+      return subcommands
+        .filter((subcommand) => subcommand.startsWith(trimmed))
+        .map((subcommand) => ({ value: subcommand, label: subcommand }));
+    },
+    handler: async (args, ctx) => {
+      const subcommand = args.trim().toLowerCase();
+      switch (subcommand) {
+        case "":
+        case "status":
+          ctx.ui.notify(statusLine(), "info");
+          return;
+        case "cancel": {
+          const pending = wait !== undefined;
+          cancelWait();
+          ctx.ui.notify(
+            pending ? "autoresume · wait cancelled" : "autoresume · nothing pending",
+            "info",
+          );
+          return;
+        }
+        case "off":
+          cancelWait();
+          sessionOff = true;
+          state = "suppressed";
+          resetBackoffCount();
+          ctx.ui.notify("autoresume · disabled for this session", "info");
+          return;
+        case "on":
+          sessionOff = false;
+          state = "idle";
+          ctx.ui.notify("autoresume · enabled for this session", "info");
+          return;
+        default:
+          ctx.ui.notify("Usage: /autoresume [status|cancel|off|on]", "info");
+      }
+    },
+  });
+
   // R12: idempotent cleanup; state never survives the session.
   pi.on("session_shutdown", () => {
     cancelWait();
