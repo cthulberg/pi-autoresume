@@ -1,0 +1,22 @@
+{
+  "name": "pi-autoresume",
+  "version": "0.1.0",
+  "description": "Automatically resume a pi session after provider usage/rate limits reset.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": ["pi-package", "pi", "extension", "autoresume", "rate-limit"],
+  "pi": { "extensions": ["./extensions/autoresume.ts"] },
+  "files": ["extensions", "src", "README.md", "LICENSE"],
+  "scripts": {
+    "test": "bun test test/classify.test.ts test/schedule.test.ts test/format.test.ts",
+    "test:integration": "bun test test/integration",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": { "@earendil-works/pi-coding-agent": "*" },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@types/bun": "latest",
+    "typescript": "^5.6.0"
+  }
+}
