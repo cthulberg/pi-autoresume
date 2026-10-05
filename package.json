@@ -5,8 +5,11 @@
   "type": "module",
   "license": "MIT",
   "keywords": ["pi-package", "pi", "extension", "autoresume", "rate-limit"],
-  "pi": { "extensions": ["./extensions/autoresume.ts"] },
-  "files": ["extensions", "src", "README.md", "LICENSE"],
+  "pi": {
+    "extensions": ["./extensions/autoresume.ts"],
+    "image": "./assets/autoresume-waiting.png"
+  },
+  "files": ["extensions", "src", "assets", "README.md", "LICENSE"],
   "scripts": {
     "test": "bun test test/classify.test.ts test/schedule.test.ts test/format.test.ts",
     "test:integration": "bun test test/integration",
