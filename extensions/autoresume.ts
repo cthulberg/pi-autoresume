@@ -34,7 +34,7 @@ const DEFAULT_TEMPLATES = {
 
 type TemplateKey = keyof typeof DEFAULT_TEMPLATES;
 
-/** `suppressed` is entered by the `/autoresume off` command added in Task 7. */
+/** `suppressed` is entered by the `/autoresume off` command. */
 type State = "idle" | "waiting" | "suppressed";
 
 type WaitSource = ResetSource | "backoff";
@@ -54,7 +54,6 @@ interface WaitState {
 interface LastAssistant {
   errorMessage?: string;
   stopReason?: string;
-  timestamp: number;
   provider?: string;
   model?: string;
   response?: { status: number; headers: Record<string, string> };
@@ -173,7 +172,7 @@ export default function autoresume(pi: ExtensionAPI): void {
 
   /**
    * The only internal path that clears the consecutive-backoff counter; also
-   * called by `/autoresume off` (Task 7) as a deliberate reset of automation.
+   * called by `/autoresume off` as a deliberate reset of automation.
    */
   function resetBackoffCount(): void {
     backoffCount = 0;
@@ -252,7 +251,6 @@ export default function autoresume(pi: ExtensionAPI): void {
     lastAssistant = {
       errorMessage: message.errorMessage,
       stopReason: message.stopReason,
-      timestamp: message.timestamp,
       provider: message.provider,
       model: message.model,
       response: responseSnapshot,
@@ -323,9 +321,9 @@ export default function autoresume(pi: ExtensionAPI): void {
 
     const remaining = Math.max(0, wait.targetAt - Date.now());
     if (wait.source === "backoff") {
-      return `autoresume · enabled · waiting · backoff ${wait.attempt}/${MAX_BACKOFF_ATTEMPTS} · retry in ${formatDuration(remaining)}`;
+      return `autoresume · enabled · waiting · ${wait.provider ?? "unknown"} · backoff ${wait.attempt}/${MAX_BACKOFF_ATTEMPTS} · retry in ${formatDuration(remaining)}`;
     }
-    return `autoresume · enabled · waiting · resume ${formatClock(wait.targetAt)} (${wait.source}) · in ${formatDuration(remaining)}`;
+    return `autoresume · enabled · waiting · ${wait.provider ?? "unknown"} · resume ${formatClock(wait.targetAt)} (${wait.source}) · in ${formatDuration(remaining)}`;
   }
 
   // R9: `/autoresume` reports state and toggles the session-level switch.
@@ -363,8 +361,13 @@ export default function autoresume(pi: ExtensionAPI): void {
           return;
         case "on":
           sessionOff = false;
-          state = "idle";
-          ctx.ui.notify("autoresume · enabled for this session", "info");
+          state = wait === undefined ? "idle" : "waiting";
+          ctx.ui.notify(
+            isEnabled()
+              ? "autoresume · enabled for this session"
+              : "autoresume · settings disabled · autoresume remains off",
+            "info",
+          );
           return;
         default:
           ctx.ui.notify("Usage: /autoresume [status|cancel|off|on]", "info");

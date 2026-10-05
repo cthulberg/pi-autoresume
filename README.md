@@ -14,8 +14,11 @@ When a provider stops a turn because of a usage or rate limit, pi-autoresume wai
 # from npm
 pi install npm:pi-autoresume
 
-# from a git repository (use this repository's URL)
-pi install git:<repo-url>
+# from this git repository
+pi install git:github.com/cthulberg/pi-autoresume
+
+# from a local checkout directory
+pi install ./pi-autoresume
 
 # try it for one invocation from a local checkout
 pi -e ./extensions/autoresume.ts
@@ -30,20 +33,20 @@ pi -e ./extensions/autoresume.ts
 | `/autoresume` or `/autoresume status` | Report state: enabled/disabled, and while waiting the reset source, reset time, and time remaining |
 | `/autoresume cancel` | Cancel the pending wait; autoresume stays enabled |
 | `/autoresume off` | Cancel the pending wait and disable autoresume for this session (memory only) |
-| `/autoresume on` | Re-enable autoresume for this session |
+| `/autoresume on` | Re-enable autoresume for this session (does not override `enabled: false` in settings) |
 | `/autoresume <other>` | Print usage |
 
 Status examples:
 
 ```text
 autoresume · enabled · idle
-autoresume · enabled · waiting · resume 17:38 (text) · in 42m 28s
-autoresume · enabled · waiting · backoff 2/5 · retry in 15m
+autoresume · enabled · waiting · openai-codex · resume 17:38 (text) · in 42m 28s
+autoresume · enabled · waiting · openai-codex · backoff 2/5 · retry in 15m
 autoresume · disabled (session) · idle   # after /autoresume off
 autoresume · disabled (settings) · idle  # when the setting enabled is false
 ```
 
-![pi TUI showing the /autoresume status output "autoresume · enabled · waiting · resume 17:38 (text) · in 42m 28s" above the footer countdown](assets/autoresume-status.png)
+![pi TUI showing the /autoresume status output "autoresume · enabled · waiting · openai-codex · resume 17:38 (text) · in 42m 28s" above the footer countdown](assets/autoresume-status.png)
 
 While a wait is pending the footer shows a countdown, refreshed every minute:
 

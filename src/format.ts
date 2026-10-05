@@ -41,7 +41,6 @@ export function renderTemplate(
   vars: Readonly<Record<string, string>>,
 ): string {
   return template.replace(/\{([a-z_]+)\}/g, (match, key: string) => {
-    const value = vars[key];
-    return value !== undefined ? value : match;
+    return Object.hasOwn(vars, key) ? vars[key]! : match;
   });
 }

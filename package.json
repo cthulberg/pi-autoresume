@@ -4,6 +4,10 @@
   "description": "Automatically resume a pi session after provider usage/rate limits reset.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cthulberg/pi-autoresume.git"
+  },
   "keywords": ["pi-package", "pi", "extension", "autoresume", "rate-limit"],
   "pi": {
     "extensions": ["./extensions/autoresume.ts"],
