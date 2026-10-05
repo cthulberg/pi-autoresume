@@ -51,7 +51,7 @@ export interface ClassifyInput {
   stopReason?: string;
 }
 
-export type ResetSource = "header" | "text";
+export type ResetSource = "header" | "text" | "event";
 
 export type LimitVerdict =
   | { kind: "reset"; resetAt: number; source: ResetSource }
@@ -106,6 +106,49 @@ export function classifyLimit(input: ClassifyInput, now: number): LimitVerdict |
   if (input.status === 429 || LIMIT_LIKE.test(errorMessage)) return { kind: "backoff" };
 
   return null;
+}
+
+/**
+ * Extracts an absolute reset time (ms) from a raw provider stream error event.
+ *
+ * Codex reports usage limits on the streamed (WebSocket/SSE) path as
+ * `{ type: "error", error: { type: "usage_limit_reached", resets_at } }`;
+ * `resets_at` is epoch seconds and `resets_in_seconds` is the fallback. This
+ * data never reaches the assistant message text, so it is read straight from
+ * the `provider_stream_event` payload instead.
+ */
+export function streamResetAt(data: unknown, now: number): number | null {
+  if (!isRecord(data) || data.type !== "error") return null;
+
+  const nested = isRecord(data.error) ? data.error : undefined;
+  const resetsAt = epochSeconds(nested?.resets_at) ?? epochSeconds(data.resets_at);
+  if (resetsAt !== null) {
+    const resetAt = resetsAt * 1000;
+    return withinHorizon(resetAt, now) ? resetAt : null;
+  }
+
+  const resetsIn = secondsFromNow(nested?.resets_in_seconds) ?? secondsFromNow(data.resets_in_seconds);
+  if (resetsIn !== null) {
+    const resetAt = now + resetsIn * 1000;
+    return withinHorizon(resetAt, now) ? resetAt : null;
+  }
+
+  return null;
+}
+
+/** Plain JSON object, not an array and not `null`. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Positive finite epoch seconds, or `null` when unusable. */
+function epochSeconds(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+/** Non-negative finite seconds from now, or `null` when unusable. */
+function secondsFromNow(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
 /**

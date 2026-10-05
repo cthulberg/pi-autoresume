@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { classifyLimit, type ClassifyInput, type LimitVerdict } from "../src/classify.ts";
+import { classifyLimit, streamResetAt, type ClassifyInput, type LimitVerdict } from "../src/classify.ts";
 
 const NOW = new Date(2026, 0, 5, 12, 0, 0).getTime();
 const TEXT_RESET_BUFFER_MS = 30_000;
@@ -92,5 +92,66 @@ const cases: Array<[string, ClassifyInput, LimitVerdict | null]> = [
 describe("classifyLimit: reset extraction", () => {
   test.each(cases)("%s", (_name, input, expected) => {
     expect(classifyLimit(input, NOW)).toEqual(expected);
+  });
+});
+
+describe("streamResetAt: raw provider stream error events", () => {
+  const codexLimit = {
+    type: "error",
+    error: {
+      type: "usage_limit_reached",
+      message: "The usage limit has been reached",
+      plan_type: "plus",
+      resets_at: (NOW + 3_600_000) / 1000,
+      resets_in_seconds: 3600,
+    },
+    status_code: 429,
+  };
+
+  test("Codex nested error reads resets_at epoch seconds", () => {
+    expect(streamResetAt(codexLimit, NOW)).toBe(NOW + 3_600_000);
+  });
+
+  test("resets_at wins over resets_in_seconds", () => {
+    const event = { type: "error", error: { resets_at: (NOW + 60_000) / 1000, resets_in_seconds: 9999 } };
+    expect(streamResetAt(event, NOW)).toBe(NOW + 60_000);
+  });
+
+  test("resets_in_seconds is the fallback", () => {
+    expect(streamResetAt({ type: "error", error: { resets_in_seconds: 120 } }, NOW)).toBe(NOW + 120_000);
+  });
+
+  test("flat reset fields are accepted", () => {
+    expect(streamResetAt({ type: "error", resets_at: (NOW + 45_000) / 1000 }, NOW)).toBe(NOW + 45_000);
+  });
+
+  test("non-error events are ignored", () => {
+    const event = { type: "response.completed", error: { resets_at: (NOW + 1_000) / 1000 } };
+    expect(streamResetAt(event, NOW)).toBeNull();
+  });
+
+  test("error events without reset fields are ignored", () => {
+    expect(streamResetAt({ type: "error", error: { type: "server_error", message: "boom" } }, NOW)).toBeNull();
+  });
+
+  test("malformed reset values are ignored", () => {
+    expect(streamResetAt({ type: "error", error: { resets_at: "soon" } }, NOW)).toBeNull();
+    expect(streamResetAt({ type: "error", error: { resets_at: Number.NaN } }, NOW)).toBeNull();
+    expect(streamResetAt({ type: "error", error: { resets_at: 0 } }, NOW)).toBeNull();
+    expect(streamResetAt({ type: "error", error: { resets_in_seconds: -1 } }, NOW)).toBeNull();
+  });
+
+  test("non-object payloads are ignored", () => {
+    for (const value of [null, undefined, 42, "error", []]) {
+      expect(streamResetAt(value, NOW)).toBeNull();
+    }
+  });
+
+  test("resets beyond the horizon are ignored", () => {
+    expect(streamResetAt({ type: "error", error: { resets_in_seconds: 604_801 } }, NOW)).toBeNull();
+  });
+
+  test("past resets within the horizon are returned", () => {
+    expect(streamResetAt({ type: "error", error: { resets_at: (NOW - 60_000) / 1000 } }, NOW)).toBe(NOW - 60_000);
   });
 });

@@ -6,6 +6,7 @@ import type {
 
 import {
   classifyLimit,
+  streamResetAt,
   type ClassifyInput,
   type LimitVerdict,
   type ResetSource,
@@ -78,6 +79,8 @@ export default function autoresume(pi: ExtensionAPI): void {
   let sessionOff = false;
   let lastAssistant: LastAssistant | undefined;
   let responseSnapshot: LastAssistant["response"];
+  /** Reset carried by a raw provider stream error event in the current run. */
+  let streamResetAtMs: number | undefined;
   let resumeTimer: ReturnType<typeof setTimeout> | undefined;
   let footerTimer: ReturnType<typeof setInterval> | undefined;
   /** Captured at arm time so timer callbacks can still update the UI. */
@@ -245,6 +248,14 @@ export default function autoresume(pi: ExtensionAPI): void {
     responseSnapshot = { status: event.status, headers: event.headers };
   });
 
+  // Codex reports usage limits on the streamed (WebSocket/SSE) path with an
+  // in-band error event whose reset never reaches the error text; remember it
+  // for the settle decision (R1).
+  pi.on("provider_stream_event", (event) => {
+    const resetAt = streamResetAt(event.data, Date.now());
+    if (resetAt !== null) streamResetAtMs = resetAt;
+  });
+
   pi.on("message_end", (event) => {
     const message = event.message;
     if (message.role !== "assistant") return;
@@ -260,6 +271,7 @@ export default function autoresume(pi: ExtensionAPI): void {
   pi.on("agent_start", () => {
     lastAssistant = undefined;
     responseSnapshot = undefined;
+    streamResetAtMs = undefined;
   });
 
   // R1: the only arming point, once pi's own retry/compaction work has settled.
@@ -290,6 +302,13 @@ export default function autoresume(pi: ExtensionAPI): void {
     if (verdict.kind === "reset") {
       // A known reset time does not consume a backoff attempt (D10).
       armWait(ctx, verdict.resetAt, verdict.source, 0, verdict.resetAt - now);
+      return;
+    }
+
+    // The streamed error event may carry the reset that the error text lacks.
+    // Only a `backoff` verdict (limit-like, not a hard stop) can be upgraded.
+    if (streamResetAtMs !== undefined) {
+      armWait(ctx, streamResetAtMs, "event", 0, streamResetAtMs - now);
       return;
     }
 
@@ -380,6 +399,7 @@ export default function autoresume(pi: ExtensionAPI): void {
     cancelWait();
     lastAssistant = undefined;
     responseSnapshot = undefined;
+    streamResetAtMs = undefined;
     resetBackoffCount();
     sessionOff = false;
     uiRef = undefined;

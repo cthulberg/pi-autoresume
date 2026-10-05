@@ -83,7 +83,7 @@ Set `enabled` to `false` to disable autoresume everywhere. Templates are rendere
 | `{retry_in}` | Time until the next attempt (`42m 30s` for a reset wait, `15m` for a backoff wait; empty in `exhausted`) |
 | `{attempt}` | Consecutive backoff attempt `1`–`5` (`0` for reset-based waits; empty in `exhausted`) |
 | `{max}` | Maximum consecutive backoff attempts: `5` |
-| `{reason}` | How the reset was found: `header` or `text` (`backoff` for backoff waits; empty in `exhausted`) |
+| `{reason}` | How the reset was found: `header`, `text`, or `event` (`backoff` for backoff waits; empty in `exhausted`) |
 
 The four messages are sent as custom messages in the transcript; `resuming` is the one that continues the session.
 
@@ -97,6 +97,7 @@ The four messages are sent as custom messages in the transcript; `resuming` is t
   3. Codex-style `Try again in ~N min`, plus a 30-second safety buffer
   4. generic reset text such as `in 2m30s`, `in 90 seconds`, `try again at 3:00 pm`, or `resets at 09:30`
   5. limit-like wording without a usable reset time → progressive backoff
+- Before falling back to backoff, a reset carried by the raw provider stream error event (`provider_stream_event`, e.g. Codex `resets_at` / `resets_in_seconds`) is used when the error text has none, so the wait stays reset-based.
 - Backoff waits are 5m, 15m, 30m, 1h, 2h, with at most 5 consecutive attempts. Reset-based waits do not consume attempts, and a settled run that is not a limit error resets the counter.
 - Long waits are re-evaluated in chunks: each timer sleeps between 30 seconds and 60 minutes, and reset times beyond 7 days are not honored (those fall back to backoff).
 
@@ -104,7 +105,7 @@ The four messages are sent as custom messages in the transcript; `resuming` is t
 
 - **In-session only.** The pending wait lives in memory. Quitting pi or reloading extensions cancels it; nothing is persisted.
 - **No escape key.** Control is the `/autoresume` command: `cancel` disarms the wait, `off` disables autoresume for the session. Sending a message while waiting also cancels the pending wait; the next limit stop arms again.
-- **Provider coverage.** The `openai-codex` subscription-limit message (`Try again in ~N min`) is covered by the test suite, as are the `retry-after`/`retry-after-ms` header and generic reset-text paths; any provider that reports a reset through those paths works through the same provider-agnostic logic. Providers that communicate no reset time fall back to backoff.
+- **Provider coverage.** The `openai-codex` subscription-limit message (`Try again in ~N min`), its streamed usage-limit error event (reset read from the raw `provider_stream_event` payload), and the `retry-after`/`retry-after-ms` header and generic reset-text paths are covered by the test suite; any provider that reports a reset through those paths works through the same provider-agnostic logic. Providers that communicate no reset time fall back to backoff.
 - **TUI chrome.** The footer countdown and notifications are shown in the interactive TUI; classification and continuation also work in non-interactive modes.
 
 ## Development
