@@ -6,7 +6,7 @@ Automatically resume a [pi](https://pi.dev) session after a provider usage or ra
 
 When a provider stops a turn because of a usage or rate limit, pi-autoresume waits for the limit to reset — or applies progressive backoff when the provider does not communicate a reset time — and then continues the session automatically. It acts only after pi's native retries have settled, ignores failures that waiting cannot fix (invalid API keys, auth, billing, insufficient quota), and keeps all state in memory: nothing is persisted across restarts.
 
-![pi TUI showing a rate-limit error, the autoresume "◦ limit hit · resume 17:38 · [autoresume]" notice, and the footer countdown "⏳ resume 17:38"](assets/autoresume-waiting.png)
+![pi TUI showing a rate-limit error, the autoresume waiting notice, and the ⏳ resume footer countdown](assets/autoresume-waiting.png)
 
 ## Install
 
@@ -46,7 +46,7 @@ autoresume · disabled (session) · idle   # after /autoresume off
 autoresume · disabled (settings) · idle  # when the setting enabled is false
 ```
 
-![pi TUI showing the /autoresume status output "autoresume · enabled · waiting · openai-codex · resume 17:38 (text) · in 42m 28s" above the footer countdown](assets/autoresume-status.png)
+![pi TUI showing /autoresume status reporting "enabled · waiting" with the provider, reset time, and remaining time above the footer countdown](assets/autoresume-status.png)
 
 While a wait is pending the footer shows a countdown, refreshed every minute:
 
@@ -116,4 +116,4 @@ bun run test:integration   # RPC integration tests; spawns `pi`, takes about 40 
 bunx tsc --noEmit          # typecheck
 ```
 
-The integration tests spawn the `pi` binary from your `PATH` and take about 40 seconds because the minimum wait is 30 seconds by design. Screenshots are regenerated with `python3 scripts/make-screenshots.py` after `python3 -m pip install --user pyte pillow`.
+The integration tests spawn the `pi` binary from your `PATH` and take about 40 seconds because the minimum wait is 30 seconds by design.
