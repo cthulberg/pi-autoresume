@@ -1,6 +1,6 @@
 {
   "name": "@cthulberg/pi-autoresume",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Automatically resume a pi session after provider usage/rate limits reset.",
   "type": "module",
   "license": "MIT",
