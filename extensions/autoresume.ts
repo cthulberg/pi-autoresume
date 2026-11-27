@@ -275,11 +275,12 @@ export default function autoresume(pi: ExtensionAPI): void {
   });
 
   // R1: the only arming point, once pi's own retry/compaction work has settled.
-  pi.on("agent_settled", (_event, ctx) => {
+  pi.on("agent_settled", (event, ctx) => {
     if (state !== "idle" || !isEnabled()) return;
 
+    // Aborting Pi's retry delay can leave the original error as the last message.
     const assistant = lastAssistant;
-    if (assistant === undefined) {
+    if (event.aborted || assistant === undefined) {
       resetBackoffCount();
       return;
     }

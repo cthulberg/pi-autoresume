@@ -10,6 +10,8 @@ When a provider stops a turn because of a usage or rate limit, pi-autoresume wai
 
 ## Install
 
+See the [Pi package page](https://pi.dev/packages/@cthulberg/pi-autoresume). You can install directly even if the package does not appear in catalog search. Tested with Pi 1.6.1.
+
 ```bash
 # from npm
 pi install npm:@cthulberg/pi-autoresume
@@ -89,7 +91,7 @@ The four messages are sent as custom messages in the transcript; `resuming` is t
 
 ## How it works
 
-- Autoresume acts only on `agent_settled`, after pi's native retries have fully settled, and only when the last assistant message ended with `stopReason: "error"`.
+- Autoresume acts only on `agent_settled`, after Pi's native retries have fully settled. It skips runs Pi reports as aborted and requires the last assistant message to have ended with `stopReason: "error"`.
 - Hard stops that waiting cannot fix (invalid API keys, auth, billing, insufficient quota) are ignored before anything else.
 - Limit classification is ordered; first match wins:
   1. `retry-after-ms` / `retry-after` response headers (trusted only for HTTP 429 or limit-like error text)
@@ -110,11 +112,13 @@ The four messages are sent as custom messages in the transcript; `resuming` is t
 
 ## Development
 
+Use Bun and Node.js 22.19 or newer (required by the Pi CLI).
+
 ```bash
-bun install
+bun install --frozen-lockfile --ignore-scripts
 bun run test               # unit tests (classify, schedule, format)
-bun run test:integration   # RPC integration tests; spawns `pi`, takes about 40 s
-bunx tsc --noEmit          # typecheck
+bun run test:integration   # RPC tests using the pinned Pi CLI, about one minute
+bun run typecheck
 ```
 
-The integration tests spawn the `pi` binary from your `PATH` and take about 40 seconds because the minimum wait is 30 seconds by design.
+The integration tests use the local Pi dev dependency, not a global `pi`. The two end-to-end resume cases each wait for the 30-second minimum by design.

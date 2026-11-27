@@ -1,6 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { RetrySettings } from "@earendil-works/pi-coding-agent";
 
 /**
  * One record from pi's RPC protocol. The protocol is deliberately open-ended:
@@ -80,20 +81,30 @@ export class RpcSession {
   }
 
   /**
-   * Starts `pi --mode rpc` with only the given extensions loaded, isolated
-   * from the real agent directory and offline.
+   * Starts the pinned dev dependency in RPC mode with only the given
+   * extensions loaded, isolated from the real agent directory and offline.
    */
-  static async start(options: { extensionPaths: string[] }): Promise<RpcSession> {
+  static async start(options: {
+    extensionPaths: string[];
+    retry?: RetrySettings;
+    models?: Record<string, unknown>;
+  }): Promise<RpcSession> {
+    const pi = Bun.which("pi", { PATH: join(import.meta.dir, "../../node_modules/.bin") });
+    if (pi === null) throw new Error("Local Pi binary not found. Run bun install first.");
+
     const cwd = await mkdtemp(join(tmpdir(), "pi-autoresume-cwd-"));
     const agentDir = await mkdtemp(join(tmpdir(), "pi-autoresume-agent-"));
     await writeFile(
       join(agentDir, "settings.json"),
-      JSON.stringify({ retry: { enabled: false } }),
+      JSON.stringify({ retry: { enabled: false, ...options.retry } }),
       "utf8",
     );
+    if (options.models !== undefined) {
+      await writeFile(join(agentDir, "models.json"), JSON.stringify(options.models), "utf8");
+    }
 
     const args = [
-      "pi",
+      pi,
       "--mode",
       "rpc",
       "--no-session",

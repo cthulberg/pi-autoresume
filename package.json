@@ -1,6 +1,6 @@
 {
   "name": "@cthulberg/pi-autoresume",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Automatically resume a pi session after provider usage/rate limits reset.",
   "type": "module",
   "license": "MIT",
@@ -14,9 +14,9 @@
   "keywords": ["pi-package", "pi", "extension", "autoresume", "rate-limit"],
   "pi": {
     "extensions": ["./extensions/autoresume.ts"],
-    "image": "./assets/autoresume-waiting.png"
+    "image": "https://cdn.jsdelivr.net/npm/@cthulberg/pi-autoresume/assets/autoresume-waiting.png"
   },
-  "files": ["extensions", "src", "assets", "README.md", "LICENSE"],
+  "files": ["extensions", "src", "assets", "README.md", "CHANGELOG.md", "LICENSE"],
   "scripts": {
     "test": "bun test test/classify.test.ts test/schedule.test.ts test/format.test.ts",
     "test:integration": "bun test test/integration",
@@ -24,8 +24,8 @@
   },
   "peerDependencies": { "@earendil-works/pi-coding-agent": "*" },
   "devDependencies": {
-    "@earendil-works/pi-ai": "*",
-    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-ai": "1.6.1",
+    "@earendil-works/pi-coding-agent": "1.6.1",
     "@types/bun": "latest",
     "typescript": "^5.6.0"
   }
